@@ -1,3 +1,4 @@
+
 <html>
   <head>
     <title>Hello React</title>
@@ -9,8 +10,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.2/marked.min.js"></script>
     <script type="text/jsx">
       /** @jsx React.DOM */
+//CommentBox
       var CommentBox = React.createClass({
-
         loadCommentsFromServer: function() {
           $.ajax({
             url: this.props.url,
@@ -24,7 +25,25 @@
             }.bind(this)
           });
         },
-        getInitialState: function(){
+        handleCommentSubmit: function(comment) {
+          var comments = this.state.data;
+          var newComments = comments.concat([comment]);
+          this.setState({data: newComments});
+          // TODO: submit to the server and refresh the list
+          $.ajax({
+            url: this.props.url,
+            dataType: 'json',
+            type: 'POST',
+            data: comment,
+            success: function(data) {
+              this.setState({data: data});
+            }.bind(this),
+            error: function(xhr, status, err) {
+              console.error(this.props.url, status, err.toString());
+            }.bind(this)
+          });
+        },
+        getInitialState: function() {
           return {data: []};
         },
         componentDidMount: function() {
@@ -34,14 +53,15 @@
         render: function() {
           return (
             <div className="commentBox">
-              <h1>Comments</h1>
+              <h2>Comments</h2>
               <CommentList data={this.state.data} />
-              <h1>新增留言</h1>
-              <CommentForm />
+              <h2>Add Comment</h2>
+              <CommentForm onCommentSubmit={this.handleCommentSubmit} />
             </div>
           );
         }
       });
+// Comment
       var Comment = React.createClass({
         render: function() {
           var rawMarkup = marked(this.props.children.toString(), {sanitize: true});
@@ -55,6 +75,7 @@
           );
         }
       });
+// CommentList
       var CommentList = React.createClass({
         render: function() {
           var commentNodes = this.props.data.map(function (comment) {
@@ -73,20 +94,32 @@
       });
 
       var CommentForm = React.createClass({
+        handleSubmit: function(e) {
+          e.preventDefault();
+          var author = React.findDOMNode(this.refs.author).value.trim();
+          var text = React.findDOMNode(this.refs.text).value.trim();
+          if (!text || !author) {
+            return;
+          }
+          this.props.onCommentSubmit({author: author, text: text});
+          // TODO: send request to the server
+          React.findDOMNode(this.refs.author).value = '';
+          React.findDOMNode(this.refs.text).value = '';
+          return;
+        },
         render: function() {
           return (
-            <form>
-              <input type="text" placeholder="Name" name="Name" />
-              <input type="text" placeholder="Say somrthing" name="Content" />
+            
+            <form className="commentForm" onSubmit={this.handleSubmit}>
+              <input type="text" placeholder="Your name" ref="author" />
+              <input type="text" placeholder="Say something..." ref="text" />
               <input type="submit" value="Post" />
             </form>
           );
         }
       });
-
-
       React.render(
-        <CommentBox url="data.json" pollInterval={1000} />,
+        <CommentBox url="data.json" pollInterval={2000} />,
         document.getElementById('content')
       );
     </script>
